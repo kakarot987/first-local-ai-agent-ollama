@@ -1,2 +1,14 @@
-# .gitignore
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
 myenv/
+
+# Local configuration
+.env
+.env.*
+!.env.example

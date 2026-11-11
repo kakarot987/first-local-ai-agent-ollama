@@ -1,2 +1,4 @@
-gradio
-requests
+gradio>=4.44,<7
+requests>=2.31,<3
+fastapi>=0.110,<1
+uvicorn>=0.29,<1
