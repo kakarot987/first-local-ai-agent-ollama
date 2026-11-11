@@ -1,21 +1,22 @@
-from fastapi import FastAPI, Request
-import requests
+"""Optional FastAPI wrapper around the same Ollama client."""
 
-app = FastAPI()
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
+from ollama_client import generate
+
+app = FastAPI(title="Local Ollama Chatbot")
+
+
+class AskRequest(BaseModel):
+    prompt: str = Field(min_length=1)
+
 
 @app.post("/ask")
-async def ask(request: Request):
-    data = await request.json()
-    prompt = data.get("prompt", "")
-
-    payload = {
-        "model": "mistral",
-        "prompt": prompt,
-        "stream": False
-    }
-
-    response = requests.post(OLLAMA_URL, json=payload)
-    result = response.json()
-    return {"response": result.get("response", "").strip()}
+def ask(payload: AskRequest) -> dict[str, str]:
+    try:
+        return {"response": generate(payload.prompt)}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

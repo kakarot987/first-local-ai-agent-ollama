@@ -1,27 +1,31 @@
 services:
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    networks:
-      - ollama_net
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
 
   agent:
     build: .
     ports:
-      - "7860:7860"
+      - "127.0.0.1:7860:7860"
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
     environment:
-      - OLLAMA_HOST=http://ollama:11434
-    networks:
-      - ollama_net
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-120}
+      GRADIO_SERVER_NAME: 0.0.0.0
+      GRADIO_SERVER_PORT: 7860
+    restart: unless-stopped
 
 volumes:
   ollama_data:
-
-networks:
-  ollama_net:
-    driver: bridge

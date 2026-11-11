@@ -1,67 +1,91 @@
-# 🧠 Local AI Chatbot with Gradio + Ollama + Mistral
+# Local AI Chatbot — Gradio + Ollama + Mistral
 
-This project is a lightweight, privacy-first chatbot interface powered by the Mistral language model running locally via Ollama, with a sleek frontend built using Gradio. Everything runs on your machine — no cloud calls, no data sharing.
+A minimal self-hosted chatbot using a Gradio UI and local Ollama inference.
+It is a **local LLM demonstration**, not an autonomous agent: there is no tool
+execution, planning loop, or retrieval. It makes no cloud LLM API requests.
 
-It’s designed for developers and AI enthusiasts who want fast, secure, and offline access to powerful language models.
+## Requirements
 
-## 🚀 Features
+- Docker with Docker Compose (recommended) **or** Python 3.11+ and local Ollama
+- Enough disk space and RAM to run your chosen Ollama model
+- An internet connection for the initial Docker-image/model download
 
-This chatbot offers fully local execution, meaning no internet is required after setup. It’s powered by the Mistral model via Ollama, and features a simple and intuitive Gradio UI. You’ll experience fast response times with zero latency from external APIs.
+## Quick start: Docker
 
-## 🛠️ Requirements
+```bash
+git clone https://github.com/kakarot987/first-local-ai-agent-ollama.git
+cd first-local-ai-agent-ollama
+bash run.sh
+```
 
-To get started, you’ll need Python 3.8 or higher, Ollama installed and running locally, and the Mistral model pulled via Ollama. You can do that by running:
+Open **http://localhost:7860**. The script starts Ollama, waits for it,
+downloads the Mistral model inside the Ollama service, and then starts Gradio.
+
+To start manually:
+
+```bash
+docker compose up -d ollama
+docker compose exec -T ollama ollama pull mistral
+docker compose up --build -d agent
+docker compose logs -f agent
+```
+
+**Important:** `docker compose up` alone does not download the Mistral model.
+Use `bash run.sh` or explicitly pull the model first. First inference may be
+slower while the model loads. Logs: `docker compose logs -f agent ollama`.
+Stop services with `docker compose down`. Data persists in the
+`ollama_data` volume.
+
+Compose points the UI to `http://ollama:11434` (the Docker service hostname),
+and binds the Gradio server to `0.0.0.0` inside the container. Published
+ports are restricted to the host loopback interface.
+
+## Quick start: local Python
+
+Install Ollama and pull the model:
 
 ```bash
 ollama pull mistral
-Then install the required Python packages:
+python -m venv .venv
+source .venv/bin/activate    # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python agent_ui.py
+```
 
-bash
-pip install gradio requests
-📦 Installation
-Clone the repository:
+Open **http://127.0.0.1:7860**. By default the UI connects to
+`http://localhost:11434`; set `OLLAMA_HOST` to a different base URL if needed.
+Use `OLLAMA_MODEL` to select another already-downloaded model, or
+`OLLAMA_TIMEOUT` (seconds) to adjust request timeout.
 
-bash
-git clone https://github.com/your-username/local-ai-chatbot.git
-cd local-ai-chatbot
-Install dependencies:
+### Optional FastAPI endpoint
 
-bash
-pip install -r requirements.txt
-Ensure Ollama is running:
+```bash
+uvicorn agent:app --host 127.0.0.1 --port 8000
+curl -X POST http://127.0.0.1:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Explain transformers briefly"}'
+```
 
-bash
-ollama run mistral
-Launch the app:
+The Docker image runs only the Gradio UI. The FastAPI module is a separate
+local entry point.
 
-bash
-python app.py
-💡 How It Works
-The user enters a prompt in the Gradio UI. That prompt is sent to a Python function, which calls Ollama’s local API. Ollama uses the Mistral model to generate a response, which is then returned and displayed in the UI.
+## Testing
 
-Architecture Flow
-User → Gradio UI → Python Function → Ollama API → Mistral Model → Response → Gradio UI
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
 
-📂 File Structure
-The project is simple and minimal:
+Tests mock HTTP requests; a running Ollama service is not required.
 
-app.py: Main application script
+## Architecture
 
-README.md: Project documentation
+User → Gradio UI (or FastAPI) → shared Python HTTP client → Ollama API → model
 
-requirements.txt: Python dependencies
+The app handles connection failures, timeouts, non-2xx HTTP responses,
+malformed JSON, and empty responses. It does not implement chat memory.
 
-🧪 Example Prompt
-Try asking: "Explain how transformers work in simple terms."
+## License
 
-You’ll get a response like: "Transformers are neural networks that use attention mechanisms to understand relationships between words in a sentence..."
-
-🧱 Built With
-Gradio for the UI
-
-Ollama for local model serving
-
-Mistral as the language model
-
-📜 License
-This project is licensed under the MIT License. See the LICENSE file for details.
+No license file is currently included. Add an explicit LICENSE if you plan
+to permit reuse under a particular license.
